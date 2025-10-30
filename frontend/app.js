@@ -1,0 +1,471 @@
+/**
+ * Electromagnetic Field Response Simulator - Application Logic
+ *
+ * This module handles:
+ * - Loading the WASM module
+ * - Collecting user input parameters
+ * - Calling WASM calculation functions
+ * - Visualizing results with Plotly
+ *
+ * The application uses WebAssembly for high-performance electromagnetic
+ * field calculations compiled from Rust code.
+ */
+
+// ========== Global State ==========
+
+let wasmModule = null;
+let currentResponse = null;
+
+// ========== WASM Module Loading ==========
+
+/**
+ * Load and initialize the WebAssembly module
+ * The WASM file should be built from the Rust source using wasm-pack
+ */
+async function initWasm() {
+    try {
+        // Import the WASM module
+        // Note: Path may need adjustment based on build output location
+        wasmModule = await import('./pkg/sphere_overburden_wasm.js');
+
+        console.log('WASM module loaded successfully');
+        document.getElementById('calculateBtn').disabled = false;
+
+        return true;
+    } catch (error) {
+        console.error('Failed to load WASM module:', error);
+
+        // Show error to user
+        showError(
+            'Failed to load calculation engine. ' +
+            'Please ensure the WebAssembly module is built and available. ' +
+            'Error: ' + error.message
+        );
+
+        // Disable calculate button
+        document.getElementById('calculateBtn').disabled = true;
+
+        return false;
+    }
+}
+
+// ========== Parameter Collection ==========
+
+/**
+ * Collect all input parameters from the form
+ * Returns an object matching the Rust Parameters structure
+ */
+function collectParameters() {
+    return {
+        // Survey configuration
+        radar: parseFloat(document.getElementById('radar').value),
+        mu: parseFloat(document.getElementById('mu').value),
+        dipole_m: parseFloat(document.getElementById('dipole_m').value),
+        base_freq: parseFloat(document.getElementById('base_freq').value),
+        period: parseFloat(document.getElementById('period').value),
+        pulse_length: parseFloat(document.getElementById('pulse_length').value),
+        profile_length: parseFloat(document.getElementById('profile_length').value),
+
+        // Transmitter-Receiver offset
+        rtxrx: {
+            x: parseFloat(document.getElementById('rtxrx_x').value),
+            y: parseFloat(document.getElementById('rtxrx_y').value),
+            z: parseFloat(document.getElementById('rtxrx_z').value),
+        },
+
+        // Dipole moment direction (should be unit vector)
+        mtx: {
+            x: parseFloat(document.getElementById('mtx_x').value),
+            y: parseFloat(document.getElementById('mtx_y').value),
+            z: parseFloat(document.getElementById('mtx_z').value),
+        },
+
+        // Sphere parameters
+        a: parseFloat(document.getElementById('a').value),
+        sigma_sp: parseFloat(document.getElementById('sigma_sp').value),
+        rsp: {
+            x: parseFloat(document.getElementById('rsp_x').value),
+            y: parseFloat(document.getElementById('rsp_y').value),
+            z: parseFloat(document.getElementById('rsp_z').value),
+        },
+
+        // Overburden parameters
+        sigma_ob: parseFloat(document.getElementById('sigma_ob').value),
+        thick_ob: parseFloat(document.getElementById('thick_ob').value),
+
+        // Geological orientation
+        apply_dip: document.getElementById('apply_dip').checked,
+        strike: parseFloat(document.getElementById('strike').value),
+        dip: parseFloat(document.getElementById('dip').value),
+
+        // Advanced options
+        xsign_negative: document.getElementById('xsign_negative').checked,
+    };
+}
+
+/**
+ * Validate parameters to ensure physical consistency
+ * Returns error message if invalid, null if valid
+ */
+function validateParameters(params) {
+    // Check for NaN values
+    const numericFields = [
+        'radar', 'mu', 'dipole_m', 'base_freq', 'period', 'pulse_length',
+        'profile_length', 'a', 'sigma_sp', 'sigma_ob', 'thick_ob', 'strike', 'dip'
+    ];
+
+    for (const field of numericFields) {
+        if (isNaN(params[field]) || !isFinite(params[field])) {
+            return `Invalid value for ${field}`;
+        }
+    }
+
+    // Check vector fields
+    if (isNaN(params.rtxrx.x) || isNaN(params.rtxrx.y) || isNaN(params.rtxrx.z)) {
+        return 'Invalid Tx-Rx offset vector';
+    }
+
+    if (isNaN(params.rsp.x) || isNaN(params.rsp.y) || isNaN(params.rsp.z)) {
+        return 'Invalid sphere position vector';
+    }
+
+    if (isNaN(params.mtx.x) || isNaN(params.mtx.y) || isNaN(params.mtx.z)) {
+        return 'Invalid dipole moment direction';
+    }
+
+    // Check physical constraints
+    if (params.a <= 0) {
+        return 'Sphere radius must be positive';
+    }
+
+    if (params.sigma_sp <= 0) {
+        return 'Sphere conductivity must be positive';
+    }
+
+    if (params.sigma_ob < 0) {
+        return 'Overburden conductivity cannot be negative';
+    }
+
+    if (params.thick_ob < 0) {
+        return 'Overburden thickness cannot be negative';
+    }
+
+    if (params.profile_length <= 0) {
+        return 'Profile length must be positive';
+    }
+
+    if (params.pulse_length <= 0 || params.period <= 0) {
+        return 'Pulse parameters must be positive';
+    }
+
+    return null; // Valid
+}
+
+// ========== Calculation and Results ==========
+
+/**
+ * Main calculation function
+ * Collects parameters, calls WASM, and updates visualization
+ */
+async function calculate() {
+    try {
+        // Collect and validate parameters
+        const params = collectParameters();
+        const validationError = validateParameters(params);
+
+        if (validationError) {
+            showError(validationError);
+            return;
+        }
+
+        // Show loading indicator
+        showLoading(true);
+        hideError();
+
+        // Convert parameters to JSON for WASM
+        const paramsJson = JSON.stringify(params);
+
+        // Call WASM calculation function
+        // This may take several seconds for the full calculation
+        const responseData = wasmModule.calculate_em_response(paramsJson);
+
+        // Parse response
+        currentResponse = JSON.parse(responseData.toJSON());
+
+        // Update visualization
+        updatePlots();
+
+        console.log('Calculation completed successfully');
+    } catch (error) {
+        console.error('Calculation error:', error);
+        showError('Calculation failed: ' + error.message);
+    } finally {
+        showLoading(false);
+    }
+}
+
+// ========== Visualization with Plotly ==========
+
+/**
+ * Update all plot displays based on current response data
+ */
+function updatePlots() {
+    if (!currentResponse) {
+        return;
+    }
+
+    const showX = document.getElementById('showX').checked;
+    const showY = document.getElementById('showY').checked;
+    const showZ = document.getElementById('showZ').checked;
+
+    // Update X component plot
+    if (showX) {
+        plotComponent('plotX', 'X', currentResponse.x_components);
+        document.getElementById('plotX').style.display = 'block';
+    } else {
+        document.getElementById('plotX').style.display = 'none';
+    }
+
+    // Update Y component plot
+    if (showY) {
+        plotComponent('plotY', 'Y', currentResponse.y_components);
+        document.getElementById('plotY').style.display = 'block';
+    } else {
+        document.getElementById('plotY').style.display = 'none';
+    }
+
+    // Update Z component plot
+    if (showZ) {
+        plotComponent('plotZ', 'Z', currentResponse.z_components);
+        document.getElementById('plotZ').style.display = 'block';
+    } else {
+        document.getElementById('plotZ').style.display = 'none';
+    }
+}
+
+/**
+ * Create a Plotly plot for a single field component
+ *
+ * @param {string} containerId - DOM element ID for the plot
+ * @param {string} component - Component name (X, Y, or Z)
+ * @param {Array<Array<number>>} data - 2D array [time_window][position]
+ */
+function plotComponent(containerId, component, data) {
+    const { x_values, time_windows } = currentResponse;
+
+    // Create a trace for each time window
+    const traces = time_windows.map((timeWindow, idx) => {
+        return {
+            x: x_values,
+            y: data[idx],
+            mode: 'lines',
+            name: formatTime(timeWindow),
+            line: {
+                width: 2,
+            },
+            hovertemplate:
+                '<b>Position:</b> %{x:.1f} m<br>' +
+                '<b>Field:</b> %{y:.4f} nT<br>' +
+                '<extra></extra>',
+        };
+    });
+
+    // Professional layout configuration
+    const layout = {
+        title: {
+            text: `${component}-Component Magnetic Field Response`,
+            font: {
+                family: 'Segoe UI, Arial, sans-serif',
+                size: 16,
+                color: '#2c3e50',
+            },
+        },
+        xaxis: {
+            title: {
+                text: 'Profile Position (m)',
+                font: {
+                    family: 'Segoe UI, Arial, sans-serif',
+                    size: 13,
+                    color: '#34495e',
+                },
+            },
+            showgrid: true,
+            gridcolor: '#ecf0f1',
+            zeroline: true,
+            zerolinecolor: '#95a5a6',
+            zerolinewidth: 2,
+        },
+        yaxis: {
+            title: {
+                text: 'Magnetic Field (nT)',
+                font: {
+                    family: 'Segoe UI, Arial, sans-serif',
+                    size: 13,
+                    color: '#34495e',
+                },
+            },
+            showgrid: true,
+            gridcolor: '#ecf0f1',
+            zeroline: true,
+            zerolinecolor: '#95a5a6',
+            zerolinewidth: 1,
+        },
+        legend: {
+            title: {
+                text: 'Time Window',
+                font: {
+                    family: 'Segoe UI, Arial, sans-serif',
+                    size: 12,
+                },
+            },
+            x: 1.02,
+            y: 1,
+            xanchor: 'left',
+            bgcolor: 'rgba(255, 255, 255, 0.9)',
+            bordercolor: '#bdc3c7',
+            borderwidth: 1,
+        },
+        plot_bgcolor: '#ffffff',
+        paper_bgcolor: '#ffffff',
+        font: {
+            family: 'Segoe UI, Arial, sans-serif',
+            size: 12,
+            color: '#2c3e50',
+        },
+        hovermode: 'closest',
+        margin: {
+            l: 80,
+            r: 200,
+            t: 60,
+            b: 60,
+        },
+    };
+
+    // Plotly configuration
+    const config = {
+        responsive: true,
+        displayModeBar: true,
+        displaylogo: false,
+        modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+        toImageButtonOptions: {
+            format: 'png',
+            filename: `em_response_${component.toLowerCase()}`,
+            height: 600,
+            width: 1000,
+            scale: 2,
+        },
+    };
+
+    // Create or update the plot
+    Plotly.newPlot(containerId, traces, layout, config);
+}
+
+/**
+ * Format time value for display
+ * Converts seconds to appropriate units (μs or ms)
+ */
+function formatTime(seconds) {
+    if (seconds < 0.001) {
+        // Display in microseconds
+        return `${(seconds * 1e6).toFixed(1)} μs`;
+    } else {
+        // Display in milliseconds
+        return `${(seconds * 1e3).toFixed(2)} ms`;
+    }
+}
+
+// ========== UI Helper Functions ==========
+
+/**
+ * Show or hide the loading indicator
+ */
+function showLoading(show) {
+    const loading = document.getElementById('loading');
+    const calculateBtn = document.getElementById('calculateBtn');
+
+    loading.style.display = show ? 'block' : 'none';
+    calculateBtn.disabled = show;
+
+    if (show) {
+        calculateBtn.textContent = 'Calculating...';
+    } else {
+        calculateBtn.textContent = 'Calculate Response';
+    }
+}
+
+/**
+ * Display an error message
+ */
+function showError(message) {
+    const errorDiv = document.getElementById('error');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+}
+
+/**
+ * Hide the error message
+ */
+function hideError() {
+    document.getElementById('error').style.display = 'none';
+}
+
+// ========== Event Handlers ==========
+
+/**
+ * Initialize event listeners
+ */
+function initEventListeners() {
+    // Calculate button
+    document.getElementById('calculateBtn').addEventListener('click', calculate);
+
+    // Component toggle checkboxes
+    document.getElementById('showX').addEventListener('change', updatePlots);
+    document.getElementById('showY').addEventListener('change', updatePlots);
+    document.getElementById('showZ').addEventListener('change', updatePlots);
+
+    // Enable calculation on Enter key in input fields
+    document.querySelectorAll('input[type="number"]').forEach((input) => {
+        input.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                calculate();
+            }
+        });
+    });
+}
+
+// ========== Application Initialization ==========
+
+/**
+ * Initialize the application
+ * Called when DOM is fully loaded
+ */
+async function init() {
+    console.log('Initializing Electromagnetic Field Response Simulator');
+
+    // Initialize event listeners
+    initEventListeners();
+
+    // Initially disable calculate button until WASM loads
+    document.getElementById('calculateBtn').disabled = true;
+    document.getElementById('calculateBtn').textContent = 'Loading...';
+
+    // Load WASM module
+    const wasmLoaded = await initWasm();
+
+    if (wasmLoaded) {
+        document.getElementById('calculateBtn').textContent = 'Calculate Response';
+        console.log('Application ready');
+    } else {
+        document.getElementById('calculateBtn').textContent = 'WASM Load Failed';
+    }
+}
+
+// Start the application when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
+
+// Export for module systems
+export { init, calculate, updatePlots };
