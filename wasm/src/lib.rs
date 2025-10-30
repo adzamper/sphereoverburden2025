@@ -41,6 +41,9 @@ impl From<Vector3> for na::Vector3<f64> {
 
 /// Complete set of electromagnetic survey parameters
 /// All units are SI unless otherwise noted
+///
+/// This struct uses our own Vector3 type for serialization compatibility.
+/// Vectors are converted to nalgebra types internally for calculations.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Parameters {
     /// Transmitter height above surface (meters)
@@ -53,10 +56,10 @@ pub struct Parameters {
     pub dipole_m: f64,
 
     /// Transmitter-Receiver offset vector (meters)
-    pub rtxrx: na::Vector3<f64>,
+    pub rtxrx: Vector3,
 
     /// Sphere center position (meters, z-positive downward)
-    pub rsp: na::Vector3<f64>,
+    pub rsp: Vector3,
 
     /// Sphere radius (meters)
     pub a: f64,
@@ -65,7 +68,7 @@ pub struct Parameters {
     pub sigma_sp: f64,
 
     /// Magnetic dipole moment direction (unit vector)
-    pub mtx: na::Vector3<f64>,
+    pub mtx: Vector3,
 
     /// Overburden layer conductivity (S/m)
     pub sigma_ob: f64,
@@ -610,14 +613,19 @@ pub fn calculate_response(x: f64, wc: &[f64], params: &Parameters) -> Vec<FieldC
     let wave = 1.0; // Default wave parameter
     let P = params.pulse_length;
 
+    // Convert our Vector3 types to nalgebra for calculations
+    let mtx_na: na::Vector3<f64> = params.mtx.into();
+    let rtxrx_na: na::Vector3<f64> = params.rtxrx.into();
+    let rsp_na: na::Vector3<f64> = params.rsp.into();
+
     // Calculate response at each time window
     for &t in wc {
         let response = h_total_step_1storder(
-            &params.mtx,
+            &mtx_na,
             params.dipole_m,
             &rtx,
-            &params.rtxrx,
-            &params.rsp,
+            &rtxrx_na,
+            &rsp_na,
             t,
             params.mu,
             params.sigma_ob,
@@ -687,11 +695,11 @@ pub fn calculate_em_response(params_json: &str) -> Result<ResponseData, JsValue>
         radar: input.radar,
         mu: input.mu,
         dipole_m: input.dipole_m,
-        rtxrx: input.rtxrx.into(),
-        rsp: input.rsp.into(),
+        rtxrx: input.rtxrx,
+        rsp: input.rsp,
         a: input.a,
         sigma_sp: input.sigma_sp,
-        mtx: input.mtx.into(),
+        mtx: input.mtx,
         sigma_ob: input.sigma_ob,
         thick_ob: input.thick_ob,
         apply_dip: input.apply_dip,
