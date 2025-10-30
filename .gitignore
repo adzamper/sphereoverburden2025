@@ -1,0 +1,22 @@
+# Build outputs
+/dist
+/frontend/pkg
+/wasm/target
+/wasm/Cargo.lock
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
