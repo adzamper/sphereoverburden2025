@@ -16,6 +16,9 @@
 let wasmModule = null;
 let currentResponse = null;
 
+// Physical constants
+const MU_0 = 1.2566370614359172e-6; // Magnetic permeability of free space (H/m)
+
 // ========== WASM Module Loading ==========
 
 /**
@@ -25,10 +28,15 @@ let currentResponse = null;
 async function initWasm() {
     try {
         // Import the WASM module
-        // Note: Path may need adjustment based on build output location
-        wasmModule = await import('./pkg/sphere_overburden_wasm.js');
+        const wasm = await import('./pkg/sphere_overburden_wasm.js');
 
-        console.log('WASM module loaded successfully');
+        // Initialize the WASM module (critical step!)
+        await wasm.default();
+
+        // Store the initialized module
+        wasmModule = wasm;
+
+        console.log('WASM module loaded and initialized successfully');
         document.getElementById('calculateBtn').disabled = false;
 
         return true;
@@ -59,7 +67,7 @@ function collectParameters() {
     return {
         // Survey configuration
         radar: parseFloat(document.getElementById('radar').value),
-        mu: parseFloat(document.getElementById('mu').value),
+        mu: MU_0, // Use constant magnetic permeability
         dipole_m: parseFloat(document.getElementById('dipole_m').value),
         base_freq: parseFloat(document.getElementById('base_freq').value),
         period: parseFloat(document.getElementById('period').value),
@@ -270,74 +278,83 @@ function plotComponent(containerId, component, data) {
         };
     });
 
-    // Professional layout configuration
+    // Dark professional layout configuration matching CSS theme
     const layout = {
         title: {
             text: `${component}-Component Magnetic Field Response`,
             font: {
-                family: 'Segoe UI, Arial, sans-serif',
-                size: 16,
-                color: '#2c3e50',
+                family: '-apple-system, BlinkMacSystemFont, Inter, Segoe UI, sans-serif',
+                size: 15,
+                color: '#e4e7eb',
             },
         },
         xaxis: {
             title: {
                 text: 'Profile Position (m)',
                 font: {
-                    family: 'Segoe UI, Arial, sans-serif',
-                    size: 13,
-                    color: '#34495e',
+                    family: '-apple-system, BlinkMacSystemFont, Inter, Segoe UI, sans-serif',
+                    size: 12,
+                    color: '#a8adb7',
                 },
             },
             showgrid: true,
-            gridcolor: '#ecf0f1',
+            gridcolor: '#2a2f3a',
+            gridwidth: 1,
             zeroline: true,
-            zerolinecolor: '#95a5a6',
+            zerolinecolor: '#4a5060',
             zerolinewidth: 2,
+            color: '#a8adb7',
         },
         yaxis: {
             title: {
                 text: 'Magnetic Field (nT)',
                 font: {
-                    family: 'Segoe UI, Arial, sans-serif',
-                    size: 13,
-                    color: '#34495e',
+                    family: '-apple-system, BlinkMacSystemFont, Inter, Segoe UI, sans-serif',
+                    size: 12,
+                    color: '#a8adb7',
                 },
             },
             showgrid: true,
-            gridcolor: '#ecf0f1',
+            gridcolor: '#2a2f3a',
+            gridwidth: 1,
             zeroline: true,
-            zerolinecolor: '#95a5a6',
+            zerolinecolor: '#4a5060',
             zerolinewidth: 1,
+            color: '#a8adb7',
         },
         legend: {
             title: {
                 text: 'Time Window',
                 font: {
-                    family: 'Segoe UI, Arial, sans-serif',
-                    size: 12,
+                    family: '-apple-system, BlinkMacSystemFont, Inter, Segoe UI, sans-serif',
+                    size: 11,
+                    color: '#a8adb7',
                 },
             },
             x: 1.02,
             y: 1,
             xanchor: 'left',
-            bgcolor: 'rgba(255, 255, 255, 0.9)',
-            bordercolor: '#bdc3c7',
+            bgcolor: 'rgba(36, 40, 48, 0.95)',
+            bordercolor: '#3a3f4b',
             borderwidth: 1,
+            font: {
+                color: '#a8adb7',
+                size: 11,
+            },
         },
-        plot_bgcolor: '#ffffff',
-        paper_bgcolor: '#ffffff',
+        plot_bgcolor: '#1a1d23',
+        paper_bgcolor: '#242830',
         font: {
-            family: 'Segoe UI, Arial, sans-serif',
-            size: 12,
-            color: '#2c3e50',
+            family: '-apple-system, BlinkMacSystemFont, Inter, Segoe UI, sans-serif',
+            size: 11,
+            color: '#a8adb7',
         },
         hovermode: 'closest',
         margin: {
-            l: 80,
-            r: 200,
-            t: 60,
-            b: 60,
+            l: 70,
+            r: 180,
+            t: 50,
+            b: 50,
         },
     };
 
