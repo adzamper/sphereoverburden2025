@@ -31,6 +31,36 @@ The application runs entirely in the browser using **WebAssembly** (compiled fro
 - **Styling**: Clean CSS following scientific application design principles
 - **Deployment**: Static site compatible with Cloudflare Pages, GitHub Pages, etc.
 
+## Quick Start (Windows)
+
+**New to Rust/WASM? Follow these steps:**
+
+1. **Install Rust** (5 minutes)
+   - Go to https://rustup.rs/
+   - Download and run `rustup-init.exe`
+   - Follow prompts (use default options)
+   - **Restart your terminal/PowerShell**
+
+2. **Install wasm-pack** (2 minutes)
+   - Open new PowerShell or Command Prompt
+   - Run: `cargo install wasm-pack`
+   - Wait for installation (may take a few minutes)
+
+3. **Add WASM target** (1 minute)
+   - Run: `rustup target add wasm32-unknown-unknown`
+
+4. **Build the application** (5-15 minutes first time)
+   - Navigate to project: `cd C:\path\to\sphereoverburden2025`
+   - Run: `build.bat`
+   - Wait patiently (downloads dependencies on first build)
+
+5. **Test locally**
+   - Option A - Python: `python -m http.server 8000 --directory dist`
+   - Option B - VS Code: Install "Live Server" extension, open `dist/index.html`, right-click → "Open with Live Server"
+   - Open http://localhost:8000 in your browser
+
+**That's it!** You should now see the application running.
+
 ### Project Structure
 
 ```
@@ -48,7 +78,9 @@ sphereoverburden2025/
 │   ├── backend/           # Original Rust server
 │   └── frontend/          # Original React app
 ├── dist/                   # Production build (generated)
-├── build.sh               # Build script
+├── build.sh               # Build script (Linux/Mac)
+├── build.bat              # Build script (Windows)
+├── serve.sh               # Dev server script (Linux/Mac)
 └── README.md              # This file
 ```
 
@@ -56,24 +88,90 @@ sphereoverburden2025/
 
 Before building the application, you need:
 
-1. **Rust Toolchain**
-   ```bash
-   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-   ```
+### 1. Rust Toolchain
 
-2. **wasm-pack** (WASM build tool)
-   ```bash
-   cargo install wasm-pack
-   ```
+**Windows:**
+- Download and run the installer from https://rustup.rs/
+- Or use the direct link: https://win.rustup.rs/x86_64
+- Follow the installer prompts (default options work fine)
+- Restart your terminal/PowerShell after installation
 
-3. **wasm32 target**
-   ```bash
-   rustup target add wasm32-unknown-unknown
-   ```
+**Linux/Mac:**
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+Verify installation:
+```bash
+rustc --version
+cargo --version
+```
+
+### 2. wasm-pack (WASM build tool)
+
+After Rust is installed, open a new terminal/PowerShell and run:
+
+```bash
+cargo install wasm-pack
+```
+
+This works the same on Windows, Linux, and Mac.
+
+### 3. wasm32 target
+
+```bash
+rustup target add wasm32-unknown-unknown
+```
+
+This works the same on all platforms.
 
 ## Building the Application
 
-### Quick Build
+### Windows Build (PowerShell)
+
+```powershell
+# Navigate to project directory
+cd C:\path\to\sphereoverburden2025
+
+# Build WASM module
+cd wasm
+wasm-pack build --target web --release --out-dir ../frontend/pkg
+cd ..
+
+# Prepare distribution directory
+if (Test-Path dist) { Remove-Item -Recurse -Force dist }
+New-Item -ItemType Directory -Path dist
+
+# Copy files to dist
+Copy-Item frontend/index.html dist/
+Copy-Item frontend/styles.css dist/
+Copy-Item frontend/app.js dist/
+Copy-Item -Recurse frontend/pkg dist/
+```
+
+### Windows Build (Command Prompt)
+
+```cmd
+REM Navigate to project directory
+cd C:\path\to\sphereoverburden2025
+
+REM Build WASM module
+cd wasm
+wasm-pack build --target web --release --out-dir ../frontend/pkg
+cd ..
+
+REM Prepare distribution directory
+if exist dist rmdir /s /q dist
+mkdir dist
+
+REM Copy files to dist
+copy frontend\index.html dist\
+copy frontend\styles.css dist\
+copy frontend\app.js dist\
+xcopy /E /I frontend\pkg dist\pkg
+```
+
+### Linux/Mac Build
 
 Run the build script:
 
@@ -81,14 +179,7 @@ Run the build script:
 ./build.sh
 ```
 
-This will:
-1. Compile the Rust code to WebAssembly
-2. Generate JavaScript bindings
-3. Copy all files to the `dist/` directory
-
-### Manual Build
-
-If you prefer to build manually:
+Or manually:
 
 ```bash
 # Build WASM module
@@ -97,6 +188,7 @@ wasm-pack build --target web --release --out-dir ../frontend/pkg
 cd ..
 
 # Prepare distribution
+rm -rf dist
 mkdir -p dist
 cp frontend/index.html dist/
 cp frontend/styles.css dist/
@@ -104,29 +196,84 @@ cp frontend/app.js dist/
 cp -r frontend/pkg dist/
 ```
 
+**Note:** All builds accomplish the same thing:
+1. Compile the Rust code to WebAssembly
+2. Generate JavaScript bindings
+3. Copy all files to the `dist/` directory
+
 ## Local Development
 
-To test the application locally, you need a web server (due to ES module and WASM requirements):
+To test the application locally, you need a web server (due to ES module and WASM requirements).
 
-### Using Python
+### Option 1: Python (Recommended for Windows)
+
+**If you have Python 3 installed:**
 
 ```bash
-python3 -m http.server 8000 --directory dist
+# Windows, Linux, Mac
+python -m http.server 8000 --directory dist
 ```
 
 Then open http://localhost:8000 in your browser.
 
-### Using Node.js
+**Note for Windows users:**
+- Try `python` first (not `python3`)
+- If that doesn't work, try `py -m http.server 8000 --directory dist`
+- If `--directory` flag isn't recognized (older Python), navigate to the dist folder first:
+  ```cmd
+  cd dist
+  python -m http.server 8000
+  ```
+
+### Option 2: Node.js http-server
+
+If you have Node.js installed:
 
 ```bash
-npx serve dist
+# Install http-server globally (one-time)
+npm install -g http-server
+
+# Run server
+http-server dist -p 8000
 ```
 
-### Using PHP
+Or use without installation:
+
+```bash
+npx http-server dist -p 8000
+```
+
+### Option 3: Visual Studio Code Live Server
+
+**Great option for Windows users:**
+
+1. Install VS Code from https://code.visualstudio.com/
+2. Install the "Live Server" extension
+3. Open the `dist` folder in VS Code
+4. Right-click `index.html` and select "Open with Live Server"
+
+### Option 4: PHP
+
+If you have PHP installed:
 
 ```bash
 php -S localhost:8000 -t dist
 ```
+
+### Option 5: Simple Windows Tools
+
+**For quick testing on Windows without installing anything:**
+
+- **Browser extension**: "Web Server for Chrome" (works offline)
+- **Standalone**: Download "Fenix Web Server" or "Mongoose Web Server"
+
+### Testing the Application
+
+Once your server is running:
+1. Open http://localhost:8000 (or the URL shown by your server)
+2. You should see the Electromagnetic Field Response Simulator interface
+3. Fill in parameters and click "Calculate Response"
+4. If you see an error about WASM loading, check the browser console (F12)
 
 ## Deployment to Cloudflare Pages
 
@@ -253,30 +400,90 @@ The application uses 11 standard time windows based on geophysical literature:
 **Problem**: "Failed to load calculation engine" error
 
 **Solutions**:
-- Ensure the application is served via HTTP/HTTPS (not file://)
-- Check browser console for detailed error messages
-- Verify `frontend/pkg/` directory contains WASM files
-- Try rebuilding: `./build.sh`
+- **Most Common**: Ensure the application is served via HTTP/HTTPS (not file://)
+  - You CANNOT open `index.html` directly in browser - it won't work
+  - You MUST use a web server (see Local Development section above)
+- Check browser console (F12) for detailed error messages
+- Verify `frontend/pkg/` directory contains WASM files after building
+- Try rebuilding (Windows: `build.bat`, Linux/Mac: `./build.sh`)
 
-### Build Fails
+### Build Fails on Windows
 
-**Problem**: `wasm-pack build` fails
+**Problem**: `wasm-pack build` fails or gives errors
 
 **Solutions**:
+- **Restart your terminal/PowerShell** after installing Rust (this is important!)
+- Verify Rust is in PATH:
+  ```cmd
+  rustc --version
+  cargo --version
+  ```
+- If commands not found, add to PATH manually:
+  - Default location: `C:\Users\YourName\.cargo\bin`
+  - Add to System Environment Variables → Path
 - Update Rust: `rustup update`
 - Update wasm-pack: `cargo install wasm-pack --force`
-- Check internet connection (downloads dependencies)
-- Clear Rust cache: `cargo clean`
+- Check internet connection (needs to download dependencies)
+- Clear Rust cache: `cargo clean` (from the `wasm` directory)
+- **Windows Defender/Antivirus**: May block Rust compilation. Add exclusion for:
+  - `C:\Users\YourName\.cargo`
+  - Your project directory
+
+### Python Server Won't Start (Windows)
+
+**Problem**: `python -m http.server` doesn't work
+
+**Solutions**:
+- Try `python` instead of `python3` on Windows
+- Try `py -m http.server 8000`
+- If Python not installed:
+  - Download from https://www.python.org/downloads/
+  - During install, check "Add Python to PATH"
+- Alternative: Use VS Code Live Server (see Local Development section)
+- Alternative: Use Node.js http-server: `npx http-server dist`
+
+### Port Already in Use
+
+**Problem**: `Address already in use` or `Port 8000 is already in use`
+
+**Solutions**:
+- Use a different port:
+  ```bash
+  python -m http.server 8001 --directory dist
+  ```
+- Find and stop the process using port 8000:
+
+  **Windows:**
+  ```cmd
+  netstat -ano | findstr :8000
+  taskkill /PID <PID_NUMBER> /F
+  ```
+
+  **Linux/Mac:**
+  ```bash
+  lsof -ti:8000 | xargs kill -9
+  ```
 
 ### Plots Don't Display
 
 **Problem**: Calculation succeeds but no plots appear
 
 **Solutions**:
-- Check browser console for JavaScript errors
-- Verify Plotly.js is loading (check network tab)
-- Ensure component toggles (X, Y, Z) are checked
-- Try refreshing the page
+- Check browser console (F12) for JavaScript errors
+- Verify Plotly.js is loading (check Network tab in F12)
+- Ensure component toggles (X, Y, Z) are checked in the interface
+- Try refreshing the page (Ctrl+F5 for hard refresh)
+- Clear browser cache
+
+### Long Build Times
+
+**Problem**: `wasm-pack build` takes a very long time (first time)
+
+**This is normal!**
+- First build downloads and compiles all dependencies (~5-15 minutes)
+- Subsequent builds are much faster (30 seconds to 2 minutes)
+- Release builds with optimizations take longer than debug builds
+- Be patient, especially on slower machines
 
 ## Development
 
