@@ -512,7 +512,7 @@ pub fn h_total_step_1storder(
     thick_ob: f64,
     sigma_sp: f64,
     a: f64,
-    P: f64,
+    _P: f64,
     apply_dip: bool,
     dip: f64,
     strike: f64,

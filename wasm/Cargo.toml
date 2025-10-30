@@ -16,7 +16,8 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 # Linear algebra library for vector operations
-nalgebra = "0.33"
+# Enable serde feature for serialization support
+nalgebra = { version = "0.33", features = ["serde-serialize"] }
 
 
 [profile.release]
