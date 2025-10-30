@@ -278,76 +278,78 @@ function plotComponent(containerId, component, data) {
         };
     });
 
-    // Dark professional layout configuration matching CSS theme
+    // Refined slate theme matching the interface
     const layout = {
         title: {
             text: `${component}-Component Magnetic Field Response`,
             font: {
-                family: '-apple-system, BlinkMacSystemFont, Inter, Segoe UI, sans-serif',
-                size: 15,
-                color: '#e4e7eb',
+                family: 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
+                size: 14,
+                color: '#f0f2f7',
+                weight: 600,
             },
+            pad: { t: 10, b: 10 },
         },
         xaxis: {
             title: {
                 text: 'Profile Position (m)',
                 font: {
-                    family: '-apple-system, BlinkMacSystemFont, Inter, Segoe UI, sans-serif',
+                    family: 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
                     size: 12,
-                    color: '#a8adb7',
+                    color: '#adb5c7',
                 },
             },
             showgrid: true,
-            gridcolor: '#2a2f3a',
+            gridcolor: '#2e3441',
             gridwidth: 1,
             zeroline: true,
-            zerolinecolor: '#4a5060',
+            zerolinecolor: '#3c4150',
             zerolinewidth: 2,
-            color: '#a8adb7',
+            color: '#adb5c7',
         },
         yaxis: {
             title: {
                 text: 'Magnetic Field (nT)',
                 font: {
-                    family: '-apple-system, BlinkMacSystemFont, Inter, Segoe UI, sans-serif',
+                    family: 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
                     size: 12,
-                    color: '#a8adb7',
+                    color: '#adb5c7',
                 },
             },
             showgrid: true,
-            gridcolor: '#2a2f3a',
+            gridcolor: '#2e3441',
             gridwidth: 1,
             zeroline: true,
-            zerolinecolor: '#4a5060',
+            zerolinecolor: '#3c4150',
             zerolinewidth: 1,
-            color: '#a8adb7',
+            color: '#adb5c7',
         },
         legend: {
             title: {
                 text: 'Time Window',
                 font: {
-                    family: '-apple-system, BlinkMacSystemFont, Inter, Segoe UI, sans-serif',
+                    family: 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
                     size: 11,
-                    color: '#a8adb7',
+                    color: '#adb5c7',
                 },
             },
             x: 1.02,
             y: 1,
             xanchor: 'left',
-            bgcolor: 'rgba(36, 40, 48, 0.95)',
-            bordercolor: '#3a3f4b',
+            bgcolor: 'rgba(22, 24, 29, 0.95)',
+            bordercolor: '#2e3441',
             borderwidth: 1,
             font: {
-                color: '#a8adb7',
-                size: 11,
+                color: '#adb5c7',
+                size: 10,
             },
         },
-        plot_bgcolor: '#1a1d23',
-        paper_bgcolor: '#242830',
+        plot_bgcolor: '#0f1419',
+        paper_bgcolor: '#16181d',
         font: {
-            family: '-apple-system, BlinkMacSystemFont, Inter, Segoe UI, sans-serif',
+            family: 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
             size: 11,
-            color: '#a8adb7',
+            color: '#adb5c7',
         },
         hovermode: 'closest',
         margin: {
@@ -440,6 +442,14 @@ function initEventListeners() {
     document.getElementById('showY').addEventListener('change', updatePlots);
     document.getElementById('showZ').addEventListener('change', updatePlots);
 
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+            const tabName = e.target.dataset.tab;
+            switchTab(tabName);
+        });
+    });
+
     // Enable calculation on Enter key in input fields
     document.querySelectorAll('input[type="number"]').forEach((input) => {
         input.addEventListener('keypress', (event) => {
@@ -448,6 +458,28 @@ function initEventListeners() {
             }
         });
     });
+}
+
+/**
+ * Switch to a different parameter tab
+ */
+function switchTab(tabName) {
+    // Remove active class from all tabs and content
+    document.querySelectorAll('.tab-btn').forEach((btn) => {
+        btn.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-content').forEach((content) => {
+        content.classList.remove('active');
+    });
+
+    // Add active class to selected tab and content
+    const tabBtn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+    const tabContent = document.getElementById(`tab-${tabName}`);
+
+    if (tabBtn && tabContent) {
+        tabBtn.classList.add('active');
+        tabContent.classList.add('active');
+    }
 }
 
 // ========== Application Initialization ==========
@@ -485,4 +517,4 @@ if (document.readyState === 'loading') {
 }
 
 // Export for module systems
-export { init, calculate, updatePlots };
+export { init, calculate, updatePlots, switchTab };

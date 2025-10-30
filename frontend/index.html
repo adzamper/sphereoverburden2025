@@ -12,200 +12,206 @@
     <div class="app-container">
         <!-- Header Section -->
         <header class="app-header">
-            <h1>Electromagnetic Field Response Simulator</h1>
-            <p class="subtitle">Time-Domain Induced Polarization Survey Modeling</p>
+            <div class="header-content">
+                <div class="header-title">
+                    <h1>EM Field Response Simulator</h1>
+                    <span class="version">v2.0</span>
+                </div>
+                <p class="subtitle">Time-Domain Induced Polarization Survey Modeling</p>
+            </div>
         </header>
 
         <!-- Main Content Area -->
         <div class="main-content">
-            <!-- Left Panel: Parameter Inputs -->
+            <!-- Left Panel: Parameter Inputs with Tabs -->
             <aside class="parameters-panel">
                 <div class="panel-header">
-                    <h2>Model Parameters</h2>
+                    <h2>Configuration</h2>
+                </div>
+
+                <!-- Tab Navigation -->
+                <div class="tab-navigation">
+                    <button class="tab-btn active" data-tab="survey">Survey</button>
+                    <button class="tab-btn" data-tab="target">Target</button>
+                    <button class="tab-btn" data-tab="geology">Geology</button>
+                    <button class="tab-btn" data-tab="advanced">Advanced</button>
                 </div>
 
                 <div class="panel-content">
-                    <!-- Survey Configuration Section -->
-                    <section class="param-section">
-                        <h3>Survey Configuration</h3>
-
+                    <!-- Survey Tab -->
+                    <div class="tab-content active" id="tab-survey">
                         <div class="param-group">
-                            <label for="radar">Transmitter Height (m)</label>
+                            <label for="radar">Transmitter Height <span class="unit">m</span></label>
                             <input type="number" id="radar" value="120" step="1">
                         </div>
 
                         <div class="param-group">
-                            <label for="profile_length">Profile Length (m)</label>
+                            <label for="profile_length">Profile Length <span class="unit">m</span></label>
                             <input type="number" id="profile_length" value="800" step="10">
                         </div>
 
                         <div class="param-group">
-                            <label for="dipole_m">Dipole Moment (A·m²)</label>
+                            <label for="dipole_m">Dipole Moment <span class="unit">A·m²</span></label>
                             <input type="number" id="dipole_m" value="1847300" step="1000">
                         </div>
 
                         <div class="param-group">
-                            <label for="base_freq">Base Frequency (Hz)</label>
+                            <label for="base_freq">Base Frequency <span class="unit">Hz</span></label>
                             <input type="number" id="base_freq" value="25" step="1">
                         </div>
 
                         <div class="param-group">
-                            <label for="pulse_length">Pulse Length (s)</label>
+                            <label for="pulse_length">Pulse Length <span class="unit">s</span></label>
                             <input type="number" id="pulse_length" value="0.00365" step="0.00001">
                         </div>
 
                         <div class="param-group">
-                            <label for="period">Period (s)</label>
+                            <label for="period">Period <span class="unit">s</span></label>
                             <input type="number" id="period" value="0.04" step="0.001">
                         </div>
-                    </section>
-
-                    <!-- Transmitter-Receiver Offset Section -->
-                    <section class="param-section">
-                        <h3>Tx-Rx Offset (m)</h3>
-
-                        <div class="vector-group">
-                            <div class="vector-input">
-                                <label>X</label>
-                                <input type="number" id="rtxrx_x" value="12.5" step="0.1">
-                            </div>
-                            <div class="vector-input">
-                                <label>Y</label>
-                                <input type="number" id="rtxrx_y" value="0" step="0.1">
-                            </div>
-                            <div class="vector-input">
-                                <label>Z</label>
-                                <input type="number" id="rtxrx_z" value="56" step="0.1">
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Dipole Moment Direction Section -->
-                    <section class="param-section">
-                        <h3>Dipole Moment Direction</h3>
-
-                        <div class="vector-group">
-                            <div class="vector-input">
-                                <label>X</label>
-                                <input type="number" id="mtx_x" value="0" step="0.1">
-                            </div>
-                            <div class="vector-input">
-                                <label>Y</label>
-                                <input type="number" id="mtx_y" value="0" step="0.1">
-                            </div>
-                            <div class="vector-input">
-                                <label>Z</label>
-                                <input type="number" id="mtx_z" value="1" step="0.1">
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Sphere Parameters Section -->
-                    <section class="param-section">
-                        <h3>Sphere Parameters</h3>
 
                         <div class="param-group">
-                            <label for="a">Radius (m)</label>
+                            <label>Tx-Rx Offset <span class="unit">m</span></label>
+                            <div class="vector-group">
+                                <div class="vector-input">
+                                    <label>X</label>
+                                    <input type="number" id="rtxrx_x" value="12.5" step="0.1">
+                                </div>
+                                <div class="vector-input">
+                                    <label>Y</label>
+                                    <input type="number" id="rtxrx_y" value="0" step="0.1">
+                                </div>
+                                <div class="vector-input">
+                                    <label>Z</label>
+                                    <input type="number" id="rtxrx_z" value="56" step="0.1">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="param-group">
+                            <label>Dipole Direction</label>
+                            <div class="vector-group">
+                                <div class="vector-input">
+                                    <label>X</label>
+                                    <input type="number" id="mtx_x" value="0" step="0.1">
+                                </div>
+                                <div class="vector-input">
+                                    <label>Y</label>
+                                    <input type="number" id="mtx_y" value="0" step="0.1">
+                                </div>
+                                <div class="vector-input">
+                                    <label>Z</label>
+                                    <input type="number" id="mtx_z" value="1" step="0.1">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Target Tab -->
+                    <div class="tab-content" id="tab-target">
+                        <div class="param-group">
+                            <label for="a">Sphere Radius <span class="unit">m</span></label>
                             <input type="number" id="a" value="100" step="1">
                         </div>
 
                         <div class="param-group">
-                            <label for="sigma_sp">Conductivity (S/m)</label>
+                            <label for="sigma_sp">Conductivity <span class="unit">S/m</span></label>
                             <input type="number" id="sigma_sp" value="2.5" step="0.1">
                         </div>
 
-                        <h4>Position (m)</h4>
-                        <div class="vector-group">
-                            <div class="vector-input">
-                                <label>X</label>
-                                <input type="number" id="rsp_x" value="0" step="1">
-                            </div>
-                            <div class="vector-input">
-                                <label>Y</label>
-                                <input type="number" id="rsp_y" value="0" step="1">
-                            </div>
-                            <div class="vector-input">
-                                <label>Z</label>
-                                <input type="number" id="rsp_z" value="-200" step="1">
+                        <div class="param-group">
+                            <label>Position <span class="unit">m</span></label>
+                            <div class="vector-group">
+                                <div class="vector-input">
+                                    <label>X</label>
+                                    <input type="number" id="rsp_x" value="0" step="1">
+                                </div>
+                                <div class="vector-input">
+                                    <label>Y</label>
+                                    <input type="number" id="rsp_y" value="0" step="1">
+                                </div>
+                                <div class="vector-input">
+                                    <label>Z</label>
+                                    <input type="number" id="rsp_z" value="-200" step="1">
+                                </div>
                             </div>
                         </div>
-                    </section>
-
-                    <!-- Overburden Parameters Section -->
-                    <section class="param-section">
-                        <h3>Overburden Layer</h3>
 
                         <div class="param-group">
-                            <label for="sigma_ob">Conductivity (S/m)</label>
+                            <label for="sigma_ob">Overburden Conductivity <span class="unit">S/m</span></label>
                             <input type="number" id="sigma_ob" value="0.0333" step="0.001">
                         </div>
 
                         <div class="param-group">
-                            <label for="thick_ob">Thickness (m)</label>
+                            <label for="thick_ob">Overburden Thickness <span class="unit">m</span></label>
                             <input type="number" id="thick_ob" value="15" step="1">
                         </div>
-                    </section>
+                    </div>
 
-                    <!-- Dip/Strike Section -->
-                    <section class="param-section">
-                        <h3>Geological Orientation</h3>
-
+                    <!-- Geology Tab -->
+                    <div class="tab-content" id="tab-geology">
                         <div class="param-group checkbox-group">
                             <label>
                                 <input type="checkbox" id="apply_dip">
-                                Apply Dip/Strike Rotation
+                                <span>Apply Dip/Strike Rotation</span>
                             </label>
                         </div>
 
                         <div class="param-group">
-                            <label for="strike">Strike (°)</label>
+                            <label for="strike">Strike Angle <span class="unit">degrees</span></label>
                             <input type="number" id="strike" value="90" step="1" min="0" max="360">
                         </div>
 
                         <div class="param-group">
-                            <label for="dip">Dip (°)</label>
+                            <label for="dip">Dip Angle <span class="unit">degrees</span></label>
                             <input type="number" id="dip" value="90" step="1" min="0" max="90">
                         </div>
-                    </section>
+                    </div>
 
-                    <!-- Advanced Options Section -->
-                    <section class="param-section">
-                        <h3>Advanced Options</h3>
-
+                    <!-- Advanced Tab -->
+                    <div class="tab-content" id="tab-advanced">
                         <div class="param-group checkbox-group">
                             <label>
                                 <input type="checkbox" id="xsign_negative">
-                                Reverse X Component Convention
+                                <span>Reverse X Component Convention</span>
                             </label>
                         </div>
-                    </section>
 
-                    <!-- Calculate Button -->
-                    <div class="button-container">
-                        <button id="calculateBtn" class="calculate-btn">
-                            Calculate Response
-                        </button>
+                        <div class="info-box">
+                            <div class="info-title">Coordinate System</div>
+                            <div class="info-text">Z-positive downward (depth)<br>X along profile direction</div>
+                        </div>
                     </div>
+                </div>
+
+                <!-- Calculate Button - Always Visible -->
+                <div class="panel-footer">
+                    <button id="calculateBtn" class="calculate-btn">
+                        <span class="btn-icon">▶</span>
+                        <span class="btn-text">Calculate Response</span>
+                    </button>
                 </div>
             </aside>
 
             <!-- Right Panel: Results and Visualization -->
             <main class="results-panel">
                 <div class="results-header">
-                    <h2>Electromagnetic Response</h2>
-                    <div class="component-toggles">
-                        <label class="toggle-label">
-                            <input type="checkbox" id="showX" checked>
-                            X Component
-                        </label>
-                        <label class="toggle-label">
-                            <input type="checkbox" id="showY">
-                            Y Component
-                        </label>
-                        <label class="toggle-label">
-                            <input type="checkbox" id="showZ" checked>
-                            Z Component
-                        </label>
+                    <div class="results-title">
+                        <h2>Electromagnetic Response</h2>
+                        <div class="component-toggles">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="showX" checked>
+                                <span>X</span>
+                            </label>
+                            <label class="toggle-label">
+                                <input type="checkbox" id="showY">
+                                <span>Y</span>
+                            </label>
+                            <label class="toggle-label">
+                                <input type="checkbox" id="showZ" checked>
+                                <span>Z</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
 
@@ -213,7 +219,7 @@
                     <!-- Loading Indicator -->
                     <div id="loading" class="loading-indicator" style="display: none;">
                         <div class="spinner"></div>
-                        <p>Calculating electromagnetic response...</p>
+                        <p>Computing electromagnetic response...</p>
                     </div>
 
                     <!-- Error Display -->
@@ -226,18 +232,12 @@
 
                     <!-- Info Panel -->
                     <div class="info-panel">
-                        <p><strong>Coordinate System:</strong> Z-positive downward (depth), X along profile</p>
                         <p><strong>Units:</strong> Magnetic field in nanoTesla (nT), distances in meters</p>
                         <p><strong>Time Windows:</strong> 11 logarithmically-spaced gates from 154 μs to 9.01 ms</p>
                     </div>
                 </div>
             </main>
         </div>
-
-        <!-- Footer -->
-        <footer class="app-footer">
-            <p>Electromagnetic Field Response Simulator | First-Order Approximation Method</p>
-        </footer>
     </div>
 
     <!-- Application JavaScript -->
