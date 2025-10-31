@@ -713,9 +713,16 @@ pub fn calculate_em_response(params_json: &str) -> Result<ResponseData, JsValue>
 
     // Standard time windows from geophysical literature (seconds)
     // These represent the gates at which the transient decay is measured
+    // Using exact values from the original backend
     let time_windows = vec![
-        0.000154, 0.000236, 0.000361, 0.000553, 0.000847, 0.001297, 0.001986, 0.003041, 0.004657,
-        0.007129, 0.009014,
+        0.000154600000000000, 0.000236000000000000,
+        0.000333700000000000, 0.000447600000000000,
+        0.000577800000000000, 0.000740600000000000,
+        0.000944000000000000, 0.00118820000000000,
+        0.00151370000000000, 0.00192060000000000,
+        0.00253090000000000, 0.00334470000000000,
+        0.00456540000000000, 0.00619300000000000,
+        0.00901430000000000,
     ];
 
     // Generate 201 evenly-spaced profile positions

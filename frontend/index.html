@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Electromagnetic Field Response Simulator</title>
+    <title>Sphere Overburden Forward Model</title>
     <link rel="stylesheet" href="styles.css">
     <!-- Plotly.js for scientific visualization -->
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
@@ -14,7 +14,7 @@
         <header class="app-header">
             <div class="header-content">
                 <div class="header-title">
-                    <h1>EM Field Response Simulator</h1>
+                    <h1>Sphere Overburden Forward Model</h1>
                     <span class="version">v2.0</span>
                 </div>
                 <p class="subtitle">Time-Domain Induced Polarization Survey Modeling</p>
@@ -32,7 +32,7 @@
                 <!-- Tab Navigation -->
                 <div class="tab-navigation">
                     <button class="tab-btn active" data-tab="survey">Survey</button>
-                    <button class="tab-btn" data-tab="target">Target</button>
+                    <button class="tab-btn" data-tab="sphere">Sphere</button>
                     <button class="tab-btn" data-tab="geology">Geology</button>
                     <button class="tab-btn" data-tab="advanced">Advanced</button>
                 </div>
@@ -107,8 +107,8 @@
                         </div>
                     </div>
 
-                    <!-- Target Tab -->
-                    <div class="tab-content" id="tab-target">
+                    <!-- Sphere Tab -->
+                    <div class="tab-content" id="tab-sphere">
                         <div class="param-group">
                             <label for="a">Sphere Radius <span class="unit">m</span></label>
                             <input type="number" id="a" value="100" step="1">
@@ -233,7 +233,7 @@
                     <!-- Info Panel -->
                     <div class="info-panel">
                         <p><strong>Units:</strong> Magnetic field in nanoTesla (nT), distances in meters</p>
-                        <p><strong>Time Windows:</strong> 11 logarithmically-spaced gates from 154 μs to 9.01 ms</p>
+                        <p><strong>Time Windows:</strong> 15 logarithmically-spaced gates from 154 μs to 9.01 ms</p>
                     </div>
                 </div>
             </main>
