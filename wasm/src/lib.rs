@@ -524,9 +524,15 @@ pub fn h_total_step_1storder(
     xsign: bool,
 ) -> na::Vector3<f64> {
     // Calculate induced magnetic moment in sphere
+    // Python uses coordinate transformation: transmitter at origin in X-Y, sphere position adjusted
+    // Transmitter: [0, 0, rtx[2]] instead of rtx
+    // Sphere: [-rtx[0], -rtx[1], rsp[2]] instead of rsp
+    let rtx_transformed = na::Vector3::new(0.0, 0.0, rtx[2]);
+    let rsp_transformed = na::Vector3::new(-rtx[0], -rtx[1], rsp[2]);
+
     // Factor of 2π comes from sphere geometry in first-order approximation
     let moment = 2.0 * PI * a.powi(3)
-        * dh_tot_step(mtx, dipole_m, rtx, rsp, mu, sigma_ob, thick_ob, t, 0.0, sigma_sp, a, T);
+        * dh_tot_step(mtx, dipole_m, &rtx_transformed, &rsp_transformed, mu, sigma_ob, thick_ob, t, 0.0, sigma_sp, a, T);
 
     // Apply dip/strike rotation if modeling tilted geological body
     let msp = if apply_dip {
@@ -557,13 +563,6 @@ pub fn h_total_step_1storder(
     // Static field from induced moment
     let statics = static_field(&msp, &offset);
 
-    // Apply sign convention for different survey configurations
-    let h_tot = if xsign {
-        na::Vector3::new(-(statics.x), statics.y, statics.z)
-    } else {
-        statics
-    };
-
     // Calculate overburden field at receiver
     let h_ob = h_ob_xyz(
         mtx,
@@ -581,15 +580,23 @@ pub fn h_total_step_1storder(
     );
 
     // Combine sphere and overburden responses
-    // Note: Z-component has different sign convention due to coordinate system
+    // Python convention: X component from static field is negated
+    // X: -static.x + h_ob.x (or +static.x + h_ob.x if xsign_negative is enabled)
+    // Z: +static.z - h_ob.z (Z component of overburden is subtracted)
     if xsign {
+        // When xsign_negative is true, don't negate the static field X component
         na::Vector3::new(
-            -(h_tot.x + h_ob.x),
-            h_tot.y + h_ob.y,
-            h_tot.z - h_ob.z,
+            statics.x + h_ob.x,
+            statics.y + h_ob.y,
+            statics.z - h_ob.z,
         )
     } else {
-        na::Vector3::new(h_tot.x + h_ob.x, h_tot.y + h_ob.y, h_tot.z - h_ob.z)
+        // Default Python behavior: negate static field X component
+        na::Vector3::new(
+            -statics.x + h_ob.x,
+            statics.y + h_ob.y,
+            statics.z - h_ob.z,
+        )
     }
 }
 
@@ -739,7 +746,11 @@ pub fn calculate_em_response(params_json: &str) -> Result<ResponseData, JsValue>
     // Calculate response at each profile position
     for i in 0..num_points {
         let x = x_min + (i as f64) * dx;
-        x_values.push(x);
+
+        // Store receiver position for x-axis (Python convention)
+        // profile position = transmitter position - offset
+        let profile_pos = x - params.rtxrx.x;
+        x_values.push(profile_pos);
 
         // Get field components for all time windows at this position
         let responses = calculate_response(x, &time_windows, &params);
