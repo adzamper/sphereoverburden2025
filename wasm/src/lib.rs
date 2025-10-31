@@ -580,24 +580,21 @@ pub fn h_total_step_1storder(
     );
 
     // Combine sphere and overburden responses
-    // MATLAB reference (H_total_step_1storder.m lines 40-42):
-    // H_tot_x = H_tot_x + H_x  where H_tot_x = -static_x
-    // H_tot_z = H_tot_z + H_z  where H_tot_z = +static_z
-    // X: -static.x + h_ob.x (negated static, add overburden)
-    // Z: +static.z + h_ob.z (positive static, ADD overburden)
+    // X component: -static.x + h_ob.x (negated static, add overburden)
+    // Z component: +static.z - h_ob.z (positive static, subtract overburden)
     if xsign {
         // When xsign_negative is true, don't negate the static field X component
         na::Vector3::new(
             statics.x + h_ob.x,
             statics.y + h_ob.y,
-            statics.z + h_ob.z,
+            statics.z - h_ob.z,
         )
     } else {
-        // Default MATLAB behavior: negate static field X component, add both overburden components
+        // Default behavior: negate static field X component, subtract overburden Z
         na::Vector3::new(
             -statics.x + h_ob.x,
             statics.y + h_ob.y,
-            statics.z + h_ob.z,
+            statics.z - h_ob.z,
         )
     }
 }
