@@ -16,6 +16,9 @@
 let wasmModule = null;
 let currentResponse = null;
 
+// Physical constants
+const MU_0 = 1.2566370614359172e-6; // Magnetic permeability of free space (H/m)
+
 // ========== WASM Module Loading ==========
 
 /**
@@ -25,10 +28,15 @@ let currentResponse = null;
 async function initWasm() {
     try {
         // Import the WASM module
-        // Note: Path may need adjustment based on build output location
-        wasmModule = await import('./pkg/sphere_overburden_wasm.js');
+        const wasm = await import('./pkg/sphere_overburden_wasm.js');
 
-        console.log('WASM module loaded successfully');
+        // Initialize the WASM module (critical step!)
+        await wasm.default();
+
+        // Store the initialized module
+        wasmModule = wasm;
+
+        console.log('WASM module loaded and initialized successfully');
         document.getElementById('calculateBtn').disabled = false;
 
         return true;
@@ -59,7 +67,7 @@ function collectParameters() {
     return {
         // Survey configuration
         radar: parseFloat(document.getElementById('radar').value),
-        mu: parseFloat(document.getElementById('mu').value),
+        mu: MU_0, // Use constant magnetic permeability
         dipole_m: parseFloat(document.getElementById('dipole_m').value),
         base_freq: parseFloat(document.getElementById('base_freq').value),
         period: parseFloat(document.getElementById('period').value),
@@ -270,74 +278,85 @@ function plotComponent(containerId, component, data) {
         };
     });
 
-    // Professional layout configuration
+    // Refined slate theme matching the interface
     const layout = {
         title: {
             text: `${component}-Component Magnetic Field Response`,
             font: {
-                family: 'Segoe UI, Arial, sans-serif',
-                size: 16,
-                color: '#2c3e50',
+                family: 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
+                size: 14,
+                color: '#f0f2f7',
+                weight: 600,
             },
+            pad: { t: 10, b: 10 },
         },
         xaxis: {
             title: {
                 text: 'Profile Position (m)',
                 font: {
-                    family: 'Segoe UI, Arial, sans-serif',
-                    size: 13,
-                    color: '#34495e',
+                    family: 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
+                    size: 12,
+                    color: '#adb5c7',
                 },
             },
             showgrid: true,
-            gridcolor: '#ecf0f1',
+            gridcolor: '#2e3441',
+            gridwidth: 1,
             zeroline: true,
-            zerolinecolor: '#95a5a6',
+            zerolinecolor: '#3c4150',
             zerolinewidth: 2,
+            color: '#adb5c7',
         },
         yaxis: {
             title: {
                 text: 'Magnetic Field (nT)',
                 font: {
-                    family: 'Segoe UI, Arial, sans-serif',
-                    size: 13,
-                    color: '#34495e',
+                    family: 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
+                    size: 12,
+                    color: '#adb5c7',
                 },
             },
             showgrid: true,
-            gridcolor: '#ecf0f1',
+            gridcolor: '#2e3441',
+            gridwidth: 1,
             zeroline: true,
-            zerolinecolor: '#95a5a6',
+            zerolinecolor: '#3c4150',
             zerolinewidth: 1,
+            color: '#adb5c7',
         },
         legend: {
             title: {
                 text: 'Time Window',
                 font: {
-                    family: 'Segoe UI, Arial, sans-serif',
-                    size: 12,
+                    family: 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
+                    size: 11,
+                    color: '#adb5c7',
                 },
             },
             x: 1.02,
             y: 1,
             xanchor: 'left',
-            bgcolor: 'rgba(255, 255, 255, 0.9)',
-            bordercolor: '#bdc3c7',
+            bgcolor: 'rgba(22, 24, 29, 0.95)',
+            bordercolor: '#2e3441',
             borderwidth: 1,
+            font: {
+                color: '#adb5c7',
+                size: 10,
+            },
         },
-        plot_bgcolor: '#ffffff',
-        paper_bgcolor: '#ffffff',
+        plot_bgcolor: '#0f1419',
+        paper_bgcolor: '#16181d',
         font: {
-            family: 'Segoe UI, Arial, sans-serif',
-            size: 12,
-            color: '#2c3e50',
+            family: 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
+            size: 11,
+            color: '#adb5c7',
         },
         hovermode: 'closest',
         margin: {
-            l: 80,
-            r: 200,
-            t: 60,
-            b: 60,
+            l: 70,
+            r: 180,
+            t: 50,
+            b: 50,
         },
     };
 
@@ -423,6 +442,14 @@ function initEventListeners() {
     document.getElementById('showY').addEventListener('change', updatePlots);
     document.getElementById('showZ').addEventListener('change', updatePlots);
 
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+            const tabName = e.target.dataset.tab;
+            switchTab(tabName);
+        });
+    });
+
     // Enable calculation on Enter key in input fields
     document.querySelectorAll('input[type="number"]').forEach((input) => {
         input.addEventListener('keypress', (event) => {
@@ -431,6 +458,28 @@ function initEventListeners() {
             }
         });
     });
+}
+
+/**
+ * Switch to a different parameter tab
+ */
+function switchTab(tabName) {
+    // Remove active class from all tabs and content
+    document.querySelectorAll('.tab-btn').forEach((btn) => {
+        btn.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-content').forEach((content) => {
+        content.classList.remove('active');
+    });
+
+    // Add active class to selected tab and content
+    const tabBtn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+    const tabContent = document.getElementById(`tab-${tabName}`);
+
+    if (tabBtn && tabContent) {
+        tabBtn.classList.add('active');
+        tabContent.classList.add('active');
+    }
 }
 
 // ========== Application Initialization ==========
@@ -468,4 +517,4 @@ if (document.readyState === 'loading') {
 }
 
 // Export for module systems
-export { init, calculate, updatePlots };
+export { init, calculate, updatePlots, switchTab };

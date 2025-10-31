@@ -41,6 +41,9 @@ impl From<Vector3> for na::Vector3<f64> {
 
 /// Complete set of electromagnetic survey parameters
 /// All units are SI unless otherwise noted
+///
+/// This struct uses our own Vector3 type for serialization compatibility.
+/// Vectors are converted to nalgebra types internally for calculations.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Parameters {
     /// Transmitter height above surface (meters)
@@ -53,10 +56,10 @@ pub struct Parameters {
     pub dipole_m: f64,
 
     /// Transmitter-Receiver offset vector (meters)
-    pub rtxrx: na::Vector3<f64>,
+    pub rtxrx: Vector3,
 
     /// Sphere center position (meters, z-positive downward)
-    pub rsp: na::Vector3<f64>,
+    pub rsp: Vector3,
 
     /// Sphere radius (meters)
     pub a: f64,
@@ -65,7 +68,7 @@ pub struct Parameters {
     pub sigma_sp: f64,
 
     /// Magnetic dipole moment direction (unit vector)
-    pub mtx: na::Vector3<f64>,
+    pub mtx: Vector3,
 
     /// Overburden layer conductivity (S/m)
     pub sigma_ob: f64,
@@ -512,7 +515,7 @@ pub fn h_total_step_1storder(
     thick_ob: f64,
     sigma_sp: f64,
     a: f64,
-    P: f64,
+    _P: f64,
     apply_dip: bool,
     dip: f64,
     strike: f64,
@@ -521,9 +524,15 @@ pub fn h_total_step_1storder(
     xsign: bool,
 ) -> na::Vector3<f64> {
     // Calculate induced magnetic moment in sphere
+    // Python uses coordinate transformation: transmitter at origin in X-Y, sphere position adjusted
+    // Transmitter: [0, 0, rtx[2]] instead of rtx
+    // Sphere: [-rtx[0], -rtx[1], rsp[2]] instead of rsp
+    let rtx_transformed = na::Vector3::new(0.0, 0.0, rtx[2]);
+    let rsp_transformed = na::Vector3::new(-rtx[0], -rtx[1], rsp[2]);
+
     // Factor of 2π comes from sphere geometry in first-order approximation
     let moment = 2.0 * PI * a.powi(3)
-        * dh_tot_step(mtx, dipole_m, rtx, rsp, mu, sigma_ob, thick_ob, t, 0.0, sigma_sp, a, T);
+        * dh_tot_step(mtx, dipole_m, &rtx_transformed, &rsp_transformed, mu, sigma_ob, thick_ob, t, 0.0, sigma_sp, a, T);
 
     // Apply dip/strike rotation if modeling tilted geological body
     let msp = if apply_dip {
@@ -554,13 +563,6 @@ pub fn h_total_step_1storder(
     // Static field from induced moment
     let statics = static_field(&msp, &offset);
 
-    // Apply sign convention for different survey configurations
-    let h_tot = if xsign {
-        na::Vector3::new(-(statics.x), statics.y, statics.z)
-    } else {
-        statics
-    };
-
     // Calculate overburden field at receiver
     let h_ob = h_ob_xyz(
         mtx,
@@ -578,15 +580,25 @@ pub fn h_total_step_1storder(
     );
 
     // Combine sphere and overburden responses
-    // Note: Z-component has different sign convention due to coordinate system
+    // MATLAB reference (H_total_step_1storder.m lines 40-42):
+    // H_tot_x = H_tot_x + H_x  where H_tot_x = -static_x
+    // H_tot_z = H_tot_z + H_z  where H_tot_z = +static_z
+    // X: -static.x + h_ob.x (negated static, add overburden)
+    // Z: +static.z + h_ob.z (positive static, ADD overburden)
     if xsign {
+        // When xsign_negative is true, don't negate the static field X component
         na::Vector3::new(
-            -(h_tot.x + h_ob.x),
-            h_tot.y + h_ob.y,
-            h_tot.z - h_ob.z,
+            statics.x + h_ob.x,
+            statics.y + h_ob.y,
+            statics.z + h_ob.z,
         )
     } else {
-        na::Vector3::new(h_tot.x + h_ob.x, h_tot.y + h_ob.y, h_tot.z - h_ob.z)
+        // Default MATLAB behavior: negate static field X component, add both overburden components
+        na::Vector3::new(
+            -statics.x + h_ob.x,
+            statics.y + h_ob.y,
+            statics.z + h_ob.z,
+        )
     }
 }
 
@@ -610,14 +622,19 @@ pub fn calculate_response(x: f64, wc: &[f64], params: &Parameters) -> Vec<FieldC
     let wave = 1.0; // Default wave parameter
     let P = params.pulse_length;
 
+    // Convert our Vector3 types to nalgebra for calculations
+    let mtx_na: na::Vector3<f64> = params.mtx.into();
+    let rtxrx_na: na::Vector3<f64> = params.rtxrx.into();
+    let rsp_na: na::Vector3<f64> = params.rsp.into();
+
     // Calculate response at each time window
     for &t in wc {
         let response = h_total_step_1storder(
-            &params.mtx,
+            &mtx_na,
             params.dipole_m,
             &rtx,
-            &params.rtxrx,
-            &params.rsp,
+            &rtxrx_na,
+            &rsp_na,
             t,
             params.mu,
             params.sigma_ob,
@@ -687,11 +704,11 @@ pub fn calculate_em_response(params_json: &str) -> Result<ResponseData, JsValue>
         radar: input.radar,
         mu: input.mu,
         dipole_m: input.dipole_m,
-        rtxrx: input.rtxrx.into(),
-        rsp: input.rsp.into(),
+        rtxrx: input.rtxrx,
+        rsp: input.rsp,
         a: input.a,
         sigma_sp: input.sigma_sp,
-        mtx: input.mtx.into(),
+        mtx: input.mtx,
         sigma_ob: input.sigma_ob,
         thick_ob: input.thick_ob,
         apply_dip: input.apply_dip,
@@ -705,9 +722,16 @@ pub fn calculate_em_response(params_json: &str) -> Result<ResponseData, JsValue>
 
     // Standard time windows from geophysical literature (seconds)
     // These represent the gates at which the transient decay is measured
+    // Using exact values from the original backend
     let time_windows = vec![
-        0.000154, 0.000236, 0.000361, 0.000553, 0.000847, 0.001297, 0.001986, 0.003041, 0.004657,
-        0.007129, 0.009014,
+        0.000154600000000000, 0.000236000000000000,
+        0.000333700000000000, 0.000447600000000000,
+        0.000577800000000000, 0.000740600000000000,
+        0.000944000000000000, 0.00118820000000000,
+        0.00151370000000000, 0.00192060000000000,
+        0.00253090000000000, 0.00334470000000000,
+        0.00456540000000000, 0.00619300000000000,
+        0.00901430000000000,
     ];
 
     // Generate 201 evenly-spaced profile positions
@@ -724,7 +748,11 @@ pub fn calculate_em_response(params_json: &str) -> Result<ResponseData, JsValue>
     // Calculate response at each profile position
     for i in 0..num_points {
         let x = x_min + (i as f64) * dx;
-        x_values.push(x);
+
+        // Store receiver position for x-axis (Python convention)
+        // profile position = transmitter position - offset
+        let profile_pos = x - params.rtxrx.x;
+        x_values.push(profile_pos);
 
         // Get field components for all time windows at this position
         let responses = calculate_response(x, &time_windows, &params);
