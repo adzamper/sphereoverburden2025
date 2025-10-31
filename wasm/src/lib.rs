@@ -403,31 +403,27 @@ pub fn thetafunction_step(
 ) -> f64 {
     // Characteristic time constant for sphere
     let ss = mu * sigma_sp * a * a;
+    let ton2 = T / 2.0;
 
     let mut theta = 0.0;
-    let mut solver = 0.0;
+    let mut temp = f64::INFINITY;
     let mut k = 0;
 
     // Sum infinite series until convergence
-    while solver < 1.0 {
+    // MATLAB: while (theta/temp) < 1E6, i.e., while temp/theta > 1E-6
+    while (theta / temp) < 1e6 {
         k += 1;
         let k_pi = (k as f64) * PI;
+        let k_pi_sq = k_pi * k_pi;
 
         // Series term accounts for pulse excitation and exponential decay
-        let excitation_factor = 1.0 / (1.0 + (-T / 2.0 * k_pi.powi(2) / ss).exp());
-        let decay_factor = (6.0 / k_pi.powi(2)) * ((o + O - t) * k_pi.powi(2) / ss).exp();
-        let temp = excitation_factor * decay_factor;
+        let excitation_factor = 1.0 / (1.0 + (-ton2 * k_pi_sq / ss).exp());
+        let decay_factor = (6.0 / k_pi_sq) * ((o + O - t) * k_pi_sq / ss).exp();
+        temp = excitation_factor * decay_factor;
 
         theta += temp;
 
-        // Check relative convergence
-        solver = temp / theta;
-
-        if k > 1 && temp.abs() < theta.abs() * 1e-10 {
-            break; // Converged to 10 significant figures
-        }
-
-        if k > 100 {
+        if k > 1000 {
             break; // Safety limit on iterations
         }
     }
@@ -462,12 +458,15 @@ pub fn dh_tot_step(
     let thetaz = thetafunction_step(t, 0.0, o, mu, sigma_sp, a, T);
 
     // Numerical integration setup
-    let n = 100;
+    // MATLAB uses adaptive quadrature with RelTol=1e-5
+    // We use trapezoidal rule with enough points for similar accuracy
+    let n = 500;  // Increased from 100 for better accuracy
     let dt = (t - o) / n as f64;
     let mut resultx = 0.0;
     let mut resultz = 0.0;
 
     // Trapezoidal integration over time from pulse turnoff to observation time
+    // Integration bounds: from o to t (equivalent to MATLAB's 0 to t-o with O variable)
     for i in 0..=n {
         let tau = o + (i as f64) * dt;
 
@@ -475,9 +474,9 @@ pub fn dh_tot_step(
         let weight = if i == 0 || i == n { 0.5 } else { 1.0 };
 
         let dh_ob = dh_obdt_xyz(mtx, dipole_m, rtx, rsp, tau, mu, sigma_ob, thick_ob);
-        let theta = thetafunction_step(t, tau, o, mu, sigma_sp, a, T);
+        let theta = thetafunction_step(t, tau - o, o, mu, sigma_sp, a, T);
 
-        // Convolution: -∫ (∂H/∂τ) * θ(t-τ) dτ
+        // Convolution: -∫ (∂H/∂τ) * θ(t, O=tau-o, o) dτ
         resultx -= weight * dh_ob.x * theta;
         resultz -= weight * dh_ob.z * theta;
     }
