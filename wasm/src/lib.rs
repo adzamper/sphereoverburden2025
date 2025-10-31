@@ -580,22 +580,24 @@ pub fn h_total_step_1storder(
     );
 
     // Combine sphere and overburden responses
-    // Python convention: X component from static field is negated
-    // X: -static.x + h_ob.x (or +static.x + h_ob.x if xsign_negative is enabled)
-    // Z: +static.z - h_ob.z (Z component of overburden is subtracted)
+    // MATLAB reference (H_total_step_1storder.m lines 40-42):
+    // H_tot_x = H_tot_x + H_x  where H_tot_x = -static_x
+    // H_tot_z = H_tot_z + H_z  where H_tot_z = +static_z
+    // X: -static.x + h_ob.x (negated static, add overburden)
+    // Z: +static.z + h_ob.z (positive static, ADD overburden)
     if xsign {
         // When xsign_negative is true, don't negate the static field X component
         na::Vector3::new(
             statics.x + h_ob.x,
             statics.y + h_ob.y,
-            statics.z - h_ob.z,
+            statics.z + h_ob.z,
         )
     } else {
-        // Default Python behavior: negate static field X component
+        // Default MATLAB behavior: negate static field X component, add both overburden components
         na::Vector3::new(
             -statics.x + h_ob.x,
             statics.y + h_ob.y,
-            statics.z - h_ob.z,
+            statics.z + h_ob.z,
         )
     }
 }
