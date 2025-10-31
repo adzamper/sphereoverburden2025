@@ -458,25 +458,26 @@ pub fn dh_tot_step(
     let thetaz = thetafunction_step(t, 0.0, o, mu, sigma_sp, a, T);
 
     // Numerical integration setup
-    // MATLAB uses adaptive quadrature with RelTol=1e-5
-    // We use trapezoidal rule with enough points for similar accuracy
-    let n = 500;  // Increased from 100 for better accuracy
-    let dt = (t - o) / n as f64;
+    // MATLAB: integral(fun, 0, t-o) where fun uses integration variable O
+    // We use trapezoidal rule with O going from 0 to (t-o)
+    let n = 500;
+    let t_minus_o = t - o;
+    let dt = t_minus_o / n as f64;
     let mut resultx = 0.0;
     let mut resultz = 0.0;
 
-    // Trapezoidal integration over time from pulse turnoff to observation time
-    // Integration bounds: from o to t (equivalent to MATLAB's 0 to t-o with O variable)
+    // Trapezoidal integration over O from 0 to (t-o)
+    // This matches MATLAB: integral(@(O) -dH_obdt.*Thetafunction_step(t,O,o,...), 0, t-o)
     for i in 0..=n {
-        let tau = o + (i as f64) * dt;
+        let O = (i as f64) * dt;  // O from 0 to (t-o)
 
         // Trapezoidal rule weights: 0.5 for endpoints, 1.0 for interior
         let weight = if i == 0 || i == n { 0.5 } else { 1.0 };
 
-        let dh_ob = dh_obdt_xyz(mtx, dipole_m, rtx, rsp, tau, mu, sigma_ob, thick_ob);
-        let theta = thetafunction_step(t, tau - o, o, mu, sigma_sp, a, T);
+        let dh_ob = dh_obdt_xyz(mtx, dipole_m, rtx, rsp, O, mu, sigma_ob, thick_ob);
+        let theta = thetafunction_step(t, O, o, mu, sigma_sp, a, T);
 
-        // Convolution: -∫ (∂H/∂τ) * θ(t, O=tau-o, o) dτ
+        // Convolution: -∫ (∂H/∂O) * θ(t, O, o) dO
         resultx -= weight * dh_ob.x * theta;
         resultz -= weight * dh_ob.z * theta;
     }
